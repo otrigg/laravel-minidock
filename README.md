@@ -25,3 +25,6 @@ Launch the commands inside this repository in order to start/stop the containers
 - ```down.sh``` - stops the containers
 - ```remove.sh``` - stops the containers and removes named volumes
 - ```shell.sh``` - opens a command shell inside the container (useful for launching ```artisan``` commands)
+
+## License
+MIT License

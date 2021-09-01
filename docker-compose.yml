@@ -1,0 +1,67 @@
+version: '3.8'
+
+networks:
+  laravel:
+    driver: bridge
+
+services:
+    main:
+        build:
+            context: ${APP_SRC}
+            dockerfile: Dockerfile
+        user: ${CURRENT_UID}
+        command: 'php artisan serve --host=0.0.0.0'
+        volumes:
+            - ${APP_SRC}:/app
+        ports:
+            - 8000:8000
+        expose:
+            - 9003
+        depends_on:
+            - db
+        networks:
+            - laravel
+
+    db:
+        image: mysql:8.0
+        restart: on-failure
+        environment:
+            MYSQL_DATABASE: main
+            MYSQL_USER: admin
+            MYSQL_ROOT: admin
+            MYSQL_PASSWORD: admin
+            MYSQL_ROOT_PASSWORD: root
+        volumes:
+            - ./volumes/mysql:/var/lib/mysql
+        expose:
+            - "3306"
+        ports:
+            - 3306:3306
+        networks:
+            - laravel
+
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin:latest
+        restart: always
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            PMA_HOST: db
+            PMA_PORT: 3306
+            PMA_USER: admin
+            PMA_PASSWORD: admin
+        ports:
+            - "8080:80"
+        depends_on:
+            - db
+        networks:
+            - laravel
+
+    mailhog:
+        image: mailhog/mailhog:latest
+        restart: on-failure
+        expose:
+            - "1025"
+        ports:
+            - 8025:8025
+        networks:
+            - laravel

@@ -1,6 +1,8 @@
 FROM php:8.0-fpm-alpine
-
-RUN docker-php-ext-install pdo pdo_mysql sockets
+RUN apk add --no-cache freetype libpng libjpeg-turbo jpeg-dev freetype-dev libpng-dev libjpeg-turbo-dev && \
+  docker-php-ext-configure gd --with-jpeg && \
+  docker-php-ext-install -j$(nproc) gd pdo pdo_mysql sockets exif && \
+  apk del --no-cache freetype-dev libpng-dev libjpeg-turbo-dev
 RUN curl -sS https://getcomposer.org/installer​ | php -- \
      --install-dir=/usr/local/bin --filename=composer
 RUN apk --update --no-cache add autoconf g++ make && \
@@ -17,6 +19,6 @@ RUN apk --update --no-cache add autoconf g++ make && \
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
-COPY ${APP_SRC} .
+COPY . .
 RUN composer install
 RUN php artisan key:generate

@@ -19,6 +19,6 @@ RUN apk --update --no-cache add autoconf g++ make && \
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
-COPY . .
+COPY ${APP_SRC} .
 RUN composer install
 RUN php artisan key:generate

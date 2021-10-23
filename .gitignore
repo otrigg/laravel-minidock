@@ -1,2 +1,2 @@
 .env
-/volumes/mysql/*
+/containers/mysql/dbdata

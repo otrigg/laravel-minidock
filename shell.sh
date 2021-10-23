@@ -1,3 +1,5 @@
 #!/bin/bash
 export CURRENT_UID=$(id -u):$(id -g)
-docker-compose run main sh
+export $(xargs <.env)
+export MAIN_CONTAINER="${APP_NAME}_app"
+docker exec -it $MAIN_CONTAINER /bin/sh

@@ -1,75 +1,114 @@
 version: '3.8'
 
 networks:
-  laravel:
+  project_network:
+    name: ${APP_NAME}_network
     driver: bridge
 
 services:
-    main:
-        build:
-            context: ${APP_SRC}
-            dockerfile: Dockerfile
-        user: ${CURRENT_UID}
-        command: 'php artisan serve --host=0.0.0.0'
-        volumes:
-            - ${APP_SRC}:/app
-        ports:
-            - 8000:8000
-        expose:
-            - 9003
-        depends_on:
-            - db
-        networks:
-            - laravel
 
-    db:
-        image: mysql:8.0
-        restart: on-failure
-        environment:
-            MYSQL_DATABASE: main
-            MYSQL_USER: admin
-            MYSQL_ROOT: admin
-            MYSQL_PASSWORD: admin
-            MYSQL_ROOT_PASSWORD: root
-        volumes:
-            - ./volumes/mysql:/var/lib/mysql
-        expose:
-            - "3306"
-        ports:
-            - 3306:3306
-        networks:
-            - laravel
+  php-fpm:
+    image: ${REPO_NAME}_app:${VERSION}
+    container_name: ${APP_NAME}_app
+    user: ${CURRENT_UID}
+    build:
+      context: ./containers/php-fpm
+      args:
+        gd: ${GD}
+        imagick: ${IMAGICK}
+        xdebug: ${XDEBUG}
+    volumes:
+      - ${APP_SRC}:/var/www/html
+    expose:
+      - 9000
+      - 9003
+    depends_on:
+      - mysql
+    networks:
+      - project_network
 
-    phpmyadmin:
-        image: phpmyadmin/phpmyadmin:latest
-        restart: always
-        environment:
-            MYSQL_ROOT_PASSWORD: root
-            PMA_HOST: db
-            PMA_PORT: 3306
-            PMA_USER: admin
-            PMA_PASSWORD: admin
-        ports:
-            - "8080:80"
-        depends_on:
-            - db
-        networks:
-            - laravel
+  mysql:
+    image: ${REPO_NAME}_mysql:${VERSION}
+    container_name: ${APP_NAME}_mysql
+    user: ${CURRENT_UID}
+    restart: on-failure
+    build:
+      context: ./containers/mysql
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_ROOT: ${MYSQL_ROOT}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - ./containers/mysql/dbdata:/var/lib/mysql
+    expose:
+      - ${MYSQL_PORT}
+    ports:
+      - 3306:3306
+    networks:
+      - project_network
+  
+  nginx:
+    restart: on-failure
+    image: ${REPO_NAME}_nginx:${VERSION}
+    container_name: ${APP_NAME}_nginx
+    working_dir: /var/www/html
+    hostname: ${APP_HOST}
+    build:
+      context: ./containers/nginx
+      args:
+        - APP_HOST=${APP_HOST}
+    volumes:
+      - ${APP_SRC}:/var/www/html
+      - ./containers/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./containers/nginx/conf.d/:/etc/nginx/conf.d
+    ports:
+      - 80:80
+    depends_on:
+      - php-fpm
+    networks:
+      - project_network
 
-    mailhog:
-        image: mailhog/mailhog:latest
-        restart: on-failure
-        expose:
-            - "1025"
-        ports:
-            - 8025:8025
-        networks:
-            - laravel
+  phpmyadmin:
+    image: ${REPO_NAME}_phpmyadmin:${VERSION}
+    container_name: ${APP_NAME}_phpmyadmin
+    build:
+      context: ./containers/phpmyadmin
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      PMA_HOST: mysql
+      PMA_PORT: ${MYSQL_PORT}
+      PMA_USER: ${MYSQL_USER}
+      PMA_PASSWORD: ${MYSQL_PASSWORD} 
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    networks:
+      - project_network
 
-    redis:
-        image: redis:5
-        restart: on-failure
-        expose:
-            - 6379
-        networks:
-            - laravel
+  mailhog:
+    image: ${REPO_NAME}_mailhog:${VERSION}
+    container_name: ${APP_NAME}_mailhog
+    build:
+      context: ./containers/mailhog
+    restart: on-failure
+    expose:
+      - "1025"
+    ports:
+      - 8025:8025
+    networks:
+      - project_network
+  
+  redis:
+    image: ${REPO_NAME}_redis:${VERSION}
+    container_name: ${APP_NAME}_redis
+    build:
+      context: ./containers/redis
+    restart: on-failure
+    expose:
+      - 6379
+    networks:
+      - project_network

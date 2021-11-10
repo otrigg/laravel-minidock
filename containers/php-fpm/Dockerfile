@@ -10,6 +10,7 @@ RUN apk add --update --no-cache \
   freetype \
   freetype-dev \
   g++ \
+  icu-dev \
   imagemagick \
   imagemagick-dev \
   jpeg-dev \
@@ -29,6 +30,8 @@ RUN docker-php-ext-install -j$(nproc) \
   pdo_mysql \
   sockets \
   zip
+
+RUN docker-php-ext-configure intl && docker-php-ext-install intl
 
 RUN if [ $gd = 1 ] ; then \
   docker-php-ext-configure gd --with-jpeg \
